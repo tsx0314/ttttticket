@@ -14,6 +14,7 @@ from proxy import proxy_chrome
 # Load configuration
 with open('config.json', 'r') as file:
     config = json.load(file)
+
 # Access proxy settings
 proxy_host = config['proxy']['host']
 proxy_port = config['proxy']['port']
@@ -21,7 +22,7 @@ proxy_user = config['proxy']['user']
 proxy_pass = config['proxy']['pass']
 
 # Access proxies list
-proxies_list = config['proxies_list']
+proxy_contents = config['proxies_list']
 
 # Access XPaths
 book_now_button_xpath = config['xpaths']['book_now_button']
@@ -43,6 +44,7 @@ with open('setting.json', 'r') as file:
 
 # URL to visit
 url_to_visit = 'https://my.bookmyshow.com/events/the-boyz-world-tour%3A-zeneration-ii-in-kuala-lumpur/BMSTBOYZ'
+ticket_number = 2
 
 def run_proxy_browser():
     [PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS] = random.choice(proxy_contents).split(":")
@@ -81,7 +83,7 @@ def run_proxy_browser():
 def check_out(browser):
     click_accept(accept_button_xpath, browser)
     print("'Accept' button clicked. Setting input value for confirm quantity...")
-    set_input_value(confirm_button_xpath, browser, 2)
+    set_input_value(confirm_button_xpath, browser, ticket_number)
     section_name = 'ZONE B'
     print(f"Choosing section {section_name}...")
     choose_sections(confirm_seat_button_xpath, browser, section_name)
@@ -97,10 +99,6 @@ def main():
         t.start()
         threads.append(t)
         time.sleep(1)
-
-    # Wait for all threads to complete
-    for t in threads:
-        t.join()
 
 if __name__ == "__main__":
     main()
