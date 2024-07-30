@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 import time
 from threading import Thread
@@ -158,22 +159,42 @@ def set_input_value(confirm_button_xpath,browser, new_value):
     except Exception as e:
         print(f"Error in set_input_value: {e}")
 
-def choose_sections(confirm_seat_button_xpath,browser, section_name):
-    try:
-        # Define the XPath for the polygon element based on data-section-name
-        polygon_xpath = f"//polygon[@data-section-name='{section_name}']"
-        wait = WebDriverWait(browser, 10)
-        polygon_element = wait.until(
-            EC.presence_of_element_located((By.XPATH, polygon_xpath))
-        )
-        polygon_element.click()
-        print(f"Polygon with section name '{section_name}' found and clicked.")
+def choose_sections(confirm_seat_button_xpath, browser, section_data):
+    if not section_data:
+        print("No section data provided.")
+        return
 
-        # Confirm seat selection
-        confirm_seat_button = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, confirm_seat_button_xpath))
-        )
-        print("Found the CONFIRM SEATS button")
-        confirm_seat_button.click()
-    except Exception as e:
-        print(f"Error in choose_seat: {e}")
+    wait = WebDriverWait(browser, 5)
+
+    for section_name in section_data:
+        try:
+            polygon_xpath = f"//polygon[@data-section-name='{section_name}']"
+            try:
+                # Wait for the polygon element to be present
+                polygon_element = wait.until(
+                    EC.presence_of_element_located((By.XPATH, polygon_xpath))
+                )
+                polygon_element.click()
+                print(f"Polygon with section name '{section_name}' found and clicked.")
+
+                confirm_seat_button = wait.until(
+                        EC.presence_of_element_located((By.XPATH, confirm_seat_button_xpath))
+                    )
+                print("Found the CONFIRM SEATS button")
+                confirm_seat_button.click()
+                
+                ###########################################################
+                # wait for the next page to load 
+                # Check if the seat is taken by looking for an 'x' element
+                # click x and continue to search for next section
+                # else 
+                return 
+                ###########################################################
+            except TimeoutException:
+                print(f"Polygon with section name '{section_name}' not found or not clickable.")
+        except Exception as e:
+            print(f"Error with section '{section_name}': {e}")
+    else:
+        # If all sections failed (loop completed without break), refresh the page
+        print("All sections are grey or unavailable. Refreshing the page.")
+        browser.refresh()

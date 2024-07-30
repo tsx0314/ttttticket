@@ -35,8 +35,8 @@ browsers = []
 
 # target sections
 with open('section.json', 'r') as file:
-    data = json.load(file)
-    print(data)
+    section_data = json.load(file)
+    print(choose_sections)
 
 with open('setting.json', 'r') as file:
     setting_data = json.load(file)
@@ -84,10 +84,7 @@ def check_out(browser):
     click_accept(accept_button_xpath, browser)
     print("'Accept' button clicked. Setting input value for confirm quantity...")
     set_input_value(confirm_button_xpath, browser, ticket_number)
-    section_name = 'ZONE B'
-    print(f"Choosing section {section_name}...")
-    choose_sections(confirm_seat_button_xpath, browser, section_name)
-    print("Section chosen. Exiting loop.")
+    choose_sections(confirm_seat_button_xpath, browser, section_data)
 
 def main():
     # Open multiple browser instances
