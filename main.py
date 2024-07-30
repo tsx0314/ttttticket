@@ -11,26 +11,26 @@ from threading import Thread
 from proxy_browser import book_now, is_in_queue, click_accept, set_input_value, choose_sections
 from proxy import proxy_chrome
 
+# Load configuration
+with open('config.json', 'r') as file:
+    config = json.load(file)
+# Access proxy settings
+proxy_host = config['proxy']['host']
+proxy_port = config['proxy']['port']
+proxy_user = config['proxy']['user']
+proxy_pass = config['proxy']['pass']
 
-# Proxy credentials and other settings
-PROXY_HOST = 'gate.smartproxy.com'
-PROXY_PORT = 7000
-PROXY_USER = 'spx4zk5nx7'
-PROXY_PASS = '5_jke0RD5ztbwue5XW'
+# Access proxies list
+proxies_list = config['proxies_list']
 
-# Define your proxies list
-proxy_contents = [
-    "gate.smartproxy.com:7000:spx4zk5nx7:5_jke0RD5ztbwue5XW"
-]
+# Access XPaths
+book_now_button_xpath = config['xpaths']['book_now_button']
+accept_button_xpath = config['xpaths']['accept_button']
+confirm_button_xpath = config['xpaths']['confirm_button']
+confirm_seat_button_xpath = config['xpaths']['confirm_seat_button']
 
 # List to keep track of browser instances
 browsers = []
-
-# button path
-booknow_button_xpath = "//button[div[text()='BOOK NOW']]"
-accept_button_xpath = "//button[div[text()='Accept']]"
-confirm_button_xpath = "//button[div[translate(text(), 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')='CONFIRM QUANTITY']]"
-confirm_seat_button_xpath = "//button[div[translate(text(), 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')='CONFIRM SEATS']]"
 
 # target sections
 with open('section.json', 'r') as file:
