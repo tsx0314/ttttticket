@@ -1,100 +1,87 @@
-import nodriver as uc
-import json
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
+# main.py
 import time
 import random
-from threading import Thread
-from proxy_browser import book_now, is_in_queue, click_accept, set_input_value, choose_sections
+from threading import Thread, Lock
+from logger_setup import setup_logging
+from config_loader import load_config
+from browser_actions import book_now, check_out, is_in_queue
+from captcha_solver import solve_captcha
 from proxy import proxy_chrome
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
-# Load configuration
-with open('config.json', 'r') as file:
-    config = json.load(file)
-# List to keep track of browser instances
-browsers = []
+def run_proxy_browser(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger):
+    with lock:
+        proxy = random.choice(proxy_contents)
 
-# target sections
-with open('section.json', 'r') as file:
-    section_data = json.load(file)
-    print(choose_sections)
+    PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS = proxy.split(":")
 
-# with open('setting.json', 'r') as file:
-#     setting_data = json.load(file)
-#     print(setting_data)
-
-# Access proxy settings
-proxy_host = config['proxy']['host']
-proxy_port = config['proxy']['port']
-proxy_user = config['proxy']['user']
-proxy_pass = config['proxy']['pass']
-
-# Access proxies list
-proxy_contents = config['proxies_list']
-
-# Access XPaths
-book_now_button_xpath = config['xpaths']['book_now_button']
-accept_button_xpath = config['xpaths']['accept_button']
-confirm_button_xpath = config['xpaths']['confirm_button']
-confirm_seat_button_xpath = config['xpaths']['confirm_seat_button']
-
-# URL to visit
-url_to_visit = 'https://my.bookmyshow.com/events/the-boyz-world-tour%3A-zeneration-ii-in-kuala-lumpur/BMSTBOYZ'
-ticket_number = 2
-
-def run_proxy_browser():
-    [PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS] = random.choice(proxy_contents).split(":")
     try:
         browser = proxy_chrome(PROXY_HOST, int(PROXY_PORT), PROXY_USER, PROXY_PASS)
         browser.get(url_to_visit)
-        browsers.append(browser)
-        time.sleep(0.5)
-       
-        while True:
+        logger.info("Browser instance started with proxy: %s", proxy)
+
+        has_secured_ticket = False
+
+        while not has_secured_ticket:
             try:
-                print("Attempting to click 'BOOK NOW' button...")
-                book_now(browser)
-                print("'BOOK NOW' button clicked. Checking queue status...")
+                logger.info("Attempting to click 'BOOK NOW' button...")
+                book_now(browser, book_now_button_xpath, logger)
+                logger.info("'BOOK NOW' button clicked. Checking queue status...")
                 time.sleep(1)
-                
-                is_in_queue(browser)
-                print("Queue status passed. Attempting to click 'Accept' button...")
-                while True:
-                    try:
-                        check_out(browser)
-                    except Exception as e:
-                        print(f"Time up. Start a new session")
-
-            except Exception as e:
-                print(f"Exception occurred: {e}")
-                # If button not found, refresh the page
-                print("Refreshing page...")
+                solve_captcha(browser, 5, captcha_xpath, logger)
+                is_in_queue(browser,logger)
+                logger.info("Queue status passed. Attempting to click 'Accept' button...")
+                check_out(browser, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, section_data, ticket_number, 600, logger)
+                has_secured_ticket = True
+                logger.info("Ticket secured. Please finished the check out and payment")
+            
+            except TimeoutException as e:
+                logger.warning("Timeout encountered: %s. Refreshing page...", e)
                 browser.refresh()
-                time.sleep(1)  # Adjust the delay as needed
+                time.sleep(1)
+            except NoSuchElementException as e:
+                logger.error("Element not found: %s. Refreshing page...", e)
+                browser.refresh()
+                time.sleep(1)
+            except Exception as e:
+                logger.error("Unexpected error: %s. Refreshing page...", e)
+                browser.refresh()
+                time.sleep(1)
     except Exception as e:
-        print(f"Failed to open browser instance: {e}")
-
-    time.sleep(36000)
-
-def check_out(browser):
-    click_accept(accept_button_xpath, browser)
-    print("'Accept' button clicked. Setting input value for confirm quantity...")
-    set_input_value(confirm_button_xpath, browser, ticket_number)
-    choose_sections(confirm_seat_button_xpath, browser, section_data)
-
+        logger.error("Failed to open browser instance: %s", e)
+    time.sleep(600)
 def main():
-    # Open multiple browser instances
+    logger = setup_logging()
+
+    config = load_config()
+
+    proxy_contents = config['proxies_list']
+    url_to_visit = config['url_to_visit']
+    ticket_number = config['ticket_number']
+    print(ticket_number)
+    section_data = config['section_data']
+
+    book_now_button_xpath = config['xpaths']['book_now_button']
+    accept_button_xpath = config['xpaths']['accept_button']
+    confirm_button_xpath = config['xpaths']['confirm_button']
+    confirm_seat_button_xpath = config['xpaths']['confirm_seat_button']
+    captcha_xpath = config['xpaths']['captcha_img']
+
+    lock = Lock()
     num_browsers = 1
     threads = []
 
     for i in range(num_browsers):
-        t = Thread(target=run_proxy_browser)
+        t = Thread(target=run_proxy_browser, args=(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger))
         t.start()
         threads.append(t)
         time.sleep(1)
+    
+    for t in threads:
+        t.join()
 
 if __name__ == "__main__":
     main()
