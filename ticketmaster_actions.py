@@ -13,8 +13,7 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 def run_proxy_browser(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger):
     with lock:
-        proxy = random.choice(p
-                              roxy_contents)
+        proxy = random.choice(proxy_contents)
 
     PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS = proxy.split(":")
 
