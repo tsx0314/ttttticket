@@ -1,6 +1,4 @@
 chromedriver.exe
-section.json
-testing.py
-config.json
+*.json
 __pycache__/
 extention/

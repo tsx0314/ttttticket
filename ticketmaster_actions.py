@@ -1,4 +1,3 @@
-# main.py
 import time
 import random
 from threading import Thread, Lock
@@ -14,7 +13,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 def run_proxy_browser(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger):
     with lock:
-        proxy = random.choice(proxy_contents)
+        proxy = random.choice(p
+                              roxy_contents)
 
     PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS = proxy.split(":")
 
@@ -84,5 +84,27 @@ def main():
     for t in threads:
         t.join()
 
-if __name__ == "__main__":
-    main()
+
+# visit https://ticketmaster.sg/ or target link
+# find_element_by_link_text('BUY TICKETS') click
+# check whether it is in the waiting room,
+    # if it is in waiting room
+        # solve captcha, fill in and click the button, start queuing
+        # start to check is_in_queue until "it is your turn"
+# log in, by finding <span>Sign In/Register</span>,  and input, fill in //*[@id="signInFormUsername"] //*[@id="signInFormPassword"]
+
+# refresh - click 'BUT TICKETS'- until
+    # find_element_by_link_text('Find tickets')
+# find_elements_by_xpath("//*[name()='g' and @id='field_PENA_VIP']")
+# get all the list click one by one
+# then find by XPATH =》 "//select[contains(@id,"ticketPrice")]
+# choose the option
+    # check options list 
+    # if options < than number_of_ticket
+        # go to the map and choose another section
+    # else: choose the options
+        #  click the button //*[@id="autoMode"]
+        # solve_capthca 
+
+
+
