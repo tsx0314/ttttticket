@@ -19,6 +19,7 @@ def check_element_exists(browser, class_name):
         return True
     except TimeoutException:
         return False
+# <span id="lbHeaderH2" data-bind="html: texts.header">You are now in line</span>
 
 def ocr_answer(browser, captcha_xpath, logger):
     try:
@@ -59,6 +60,7 @@ def solve_captcha(browser, retries, captcha_xpath, logger):
             if check_element_exists(browser, "botdetect-input"):
                 try:
                     ocr_result = ocr_answer(browser, captcha_xpath, logger)
+                    print(ocr_result)
                 except Exception as ocr_exception:
                     logger.error("Error during OCR processing: %s", ocr_exception)
                     time.sleep(1)
@@ -72,13 +74,17 @@ def solve_captcha(browser, retries, captcha_xpath, logger):
                     input_element.send_keys(ocr_result)
 
                     not_robot_button = WebDriverWait(browser, 10).until(
-                        EC.element_to_be_clickable((By.CLASS_NAME, "botdetect-button.btn"))
+                        EC.element_to_be_clickable((By.CLASS_NAME, 'botdetect-button'))
                     )
+                    print(not_robot_button)
                     not_robot_button.click()
-                    time.sleep(1)
+                    time.sleep(5)
 
                     # Check if CAPTCHA is still present
-                    if not check_element_exists(browser, "botdetect-input"):
+                    element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, "//*[text()='You are now in line']")))
+        
+                    # Check if the element is found
+                    if element:
                         logger.info("CAPTCHA solved successfully.")
                         return
                     else:
