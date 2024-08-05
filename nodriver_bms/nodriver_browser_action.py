@@ -33,7 +33,8 @@ async def visit_target_website(page):
         except Exception as e:
             logger.error("Other error: {}. Reload the page.", e)
             page.reload()
-    
+
+# Check capthca  
 async def check_captcha(page):
     # <img class="captcha-code" aria-label="captcha image" alt="captcha image" src="data:image/jpeg;charset=utf-8;base64,/9j/4AAQSkZ">
     # <input name="CaptchaCode" class="botdetect-input" tabindex="0" id="solution" type="text" pattern="[A-Za-z0-9]*" aria-label="Enter the code from the picture: ">
@@ -71,12 +72,14 @@ async def check_captcha(page):
 
             not_robot_button = await page.select("button[class*=botdetect-button]")
             await not_robot_button.click()
-            # click
+            # check still have captcha or not
+            # if not habe t
         else:
             raise ValueError("Image source is not in the expected format")
     except Exception as e:
         logger.error("No captcha image found. Checking queue status...")
 
+# Check queue status
 async def check_queue(page):
     time.sleep(1)
     in_queue = True 
@@ -95,6 +98,7 @@ async def check_queue(page):
             logger.info("Not in queue. Moving to the next step.")
             redirect(page)
 
+# Redirect button
 async def redirect(page):
     time.sleep(1)
     try:
@@ -105,6 +109,7 @@ async def redirect(page):
     except TimeoutError as e:
         logger.info("No redirect button detected. Go to the next page.")
 
+# Click accpet button 
 async def scroll_and_accept(page):
     # <div class="ClickToAccept__StyledContent-sc-1bm3gjz-3 gJmPMw"><div class="sc-fzpans fcjwmW ClickToAccept__StyledHTMLParser-sc-1bm3gjz-4 dPRNgc bigtix-htmlparser"><ul><li><strong>Please ensure your email address is valid to receive the confirmation email and e-ticket(s). 请确保您的电子邮件地址有效，以便接收确认电子邮件和电子门票。</strong></li></ul><p><br></p><ul><li><strong>Any request of changing email will not be entertained. 任何更改电子邮件的请求將不予受理</strong>。</li></ul><p><br></p><ul><li>Please ensure the ticket category/section that you selected is correct. 请确保您选择的门票类别/区域是正确的。</li></ul><p><br></p><ul><li>There will be no cancellation or changes once transaction is successful. 交易成功后将无法取消或更改。</li></ul><p><br></p><ul><li>Please check on the seats assigned to you at the Booking Summary before check out. 请在付款前检查分配給您的座位。</li></ul><p><br></p></div></div>
     try: 
@@ -118,6 +123,7 @@ async def scroll_and_accept(page):
     except Exception as e:
         logger.error(e)
 
+# input ticket quantity
 async def confirm_quantity(page):
     try:
         confirm_quatity_button = await page.select("button[id*=booking-next-page]")
@@ -136,51 +142,67 @@ async def fill_in_ticket_number(page, ticket_number):
     except TimeoutError as e:
         logger.error("Unable to detect input for the ticket number!")
 
-# <g id="layer-overview">
-#     <rect class="cls-1" x="106.9" y="135.8" width="1080" height="1459.9"></rect>
-#     <polygon id="area-01" link="ZONE A (L).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" points="257.2 679.7 338.3 680.4 427.9 681.3 474.3 681.3 474.3 615.9 257.2 615.9 257.2 679.7" data-category="01" data-section-name="ZONE A (L)" data-section-id="c09f2ca5-52a5-4c72-85a3-b9863735bc9a" data-area-code="01"></polygon>
-#     <polygon id="area-02" link="ZONE A (R).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" points="814.3 680.7 733.2 681.4 643.6 681.3 597.2 681.3 597.2 615.9 814.3 615.9 814.3 680.7" data-category="10" data-section-name="ZONE A (R)" data-section-id="1b29a8b0-08cc-4ee5-bb63-747ce4345182" data-area-code="02"></polygon>
-#     <polygon id="area-03" link="ZONE B.svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" points="734.8 688.5 644.2 688.1 597.1 689.1 596.8 729.1 535.7 729.2 474.7 729.1 474.4 688.1 427.3 688.1 336.6 687.5 257 687 257.5 723.8 257.5 762.8 525.6 762.8 545.9 762.8 814 762.8 814 723.8 814.5 688 734.8 688.5" data-category="02" data-section-name="ZONE B" data-section-id="7c76ae11-0c27-42fa-941a-94cc77fd70c4" data-area-code="03"></polygon>
-#     <rect id="area-04" class="cls-2 bigtix-overview-map__area" x="257" y="769" width="266.5" height="114.2" data-category="03" data-section-name="ZONE C (L)" data-area-code="04"></rect>
-#     <rect id="area-05" class="cls-2 bigtix-overview-map__area" x="540.5" y="769" width="274" height="114.2" data-category="07" data-section-name="ZONE C (R)" data-area-code="05"></rect>
-#     <rect id="area-06" link="P1(L).svg" class="cls-2 bigtix-overview-map__area" x="257.1" y="961.8" width="164.1" height="100.5" data-category="04" data-section-name="P1 (L)" data-section-id="2d7f6ad5-be4b-4c2e-a5ce-8b138f3dea0c" data-area-code="06"></rect>
-#     <polygon id="area-07" link="P1(C).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" points="567.6 961.8 567.6 1037.7 505.7 1037.7 505.7 961.8 432.3 961.8 432.3 1062.3 638.4 1062.3 638.4 961.8 567.6 961.8" data-category="04" data-section-name="P1 (C)" data-section-id="da09bad0-13d9-4f60-b362-6bdbb98fa240" data-area-code="07"></polygon>
-#     <rect id="area-08" link="P1(R).svg" class="cls-2 bigtix-overview-map__area" x="649.1" y="961.8" width="166.2" height="100.5" data-category="04" data-section-name="P1 (R)" data-section-id="28282cb8-4889-4e97-ae83-889cc22ced3c" data-area-code="08"></rect>
-#     <rect id="area-09" link="P2(L).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="257.1" y="1074.4" width="164.1" height="87.8" data-category="05" data-section-name="P2 (L)" data-section-id="d6c84457-ff9c-4098-a015-990b0f87cb80" data-area-code="09"></rect>
-#     <rect id="area-10" link="P2(C).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="431.4" y="1074.4" width="206.1" height="173.8" data-category="05" data-section-name="P2 (C)" data-section-id="88026a6a-6f9d-42c0-a744-e1146583055b" data-area-code="10"></rect>
-#     <rect id="area-11" link="P2 (R).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="649.1" y="1074.4" width="166.2" height="87.8" data-category="05" data-section-name="P2 (R)" data-section-id="e9326021-5ccb-4a21-a0d5-9686830c8d84" data-area-code="11"></rect>
-#     <rect id="area-12" link="P3(L).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="257.1" y="1174.1" width="164.1" height="74" data-category="06" data-section-name="P3 (L)" data-section-id="94fde3af-025b-4e6e-8c2f-f8c68ac58edc" data-area-code="12"></rect>
-#     <rect id="area-13" link="P3 (R).svg" class="cls-2 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="649.1" y="1174.1" width="166.2" height="74" data-category="06" data-section-name="P3 (R)" data-section-id="9bc4ddb3-11d6-43a8-8766-478e89576be6" data-area-code="13"></rect>
-#     <rect id="area-14" class="cls-1 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="461.2" y="898.3" width="37.3" height="26.6" data-category="08" data-section-name="P1 Special Need" data-area-code="14"></rect>
-#     <rect id="area-15" class="cls-1 bigtix-overview-map__area bigtix-overview-map__area-hidden" x="250.5" y="563.2" width="68.3" height="34.3" data-category="09" data-section-name="Without Seat" data-area-code="15"></rect>
-#   </g>
-
+# Choose target sections
 async def choose_section(page, section_data):
-    logger.info("Choose section...")
-    for section in section_data:
-        try:
-            css_selector = "rect[id*=area-05]"
-            current_section = await page.select(css_selector)
-            # print(current_section)
-            await current_section.scroll_into_view()
-            await current_section.mouse_click()
-            # <button disabled="" aria-disabled="true" type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-button--disabled bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next" style="pointer-events: none;"><div>Confirm Seats</div></button>
-            time.sleep(0.5)
-            confirm_seats_button = await page.select("button[id*=booking-next-page]")
+    logger.info("Choosing section...")
+    while True:
+        for section in section_data:
             try:
-                is_clickable = await confirm_seats_button.get_js_attributes("aria-disabled")
+                section_id = str(section)
+                css_selector = f"rect[id={section_id}]"
+                current_section = await page.select(css_selector)
+                print(current_section)
+                await current_section.mouse_click()
+                print("section is clicked.")
+                time.sleep(0.5)
+                # has redirect to check out page or not
+                try:
+                    # <button disabled="" aria-disabled="true" type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-button--disabled bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next" style="pointer-events: none;"><div>Confirm Seats</div></button>
+                    # <button type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next" style=""><div>Confirm Seats</div></button>
+                    confirm_seats_button = await page.select("button[id*=booking-next-page]")
+                    print(confirm_seats_button)
+                    print("confirm seats button found...")
+
+                    ############## BUG HERE ##################
+                    button_attributes = await confirm_seats_button.get_js_attributes()
+                    ###########################################
+                    print(button_attributes)
+                    button_style = button_attributes["style"]
+
+                    print(button_style)
+                    
+                    print("Attributr style is: " + button_style)
+                    if "none" in button_style:
+                        continue
+                    else:
+                        await confirm_seats_button.click()  # Click if "none" is not in the button style
+                        print("confirm seats button clicked...")
+
+                except Exception as e:
+                    logger.error("Line 182: " + e)
+
+                try:
+                    # <button type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-booking-message-return"><div>Back</div></button>
+                    await page.find_element_by_text("Seats Unavailable")
+                    # <button type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--secondary bigtix-booking-pagenav-back" id="bigtix-booking-prev-page" data-test="test-bigtix-booking--pagenav-back"><div>Back</div></button>
+                    back_button = await page.selector("button[class*=booking-message-return]")
+                    await back_button.click()
+                except Exception as e:
+                    logger.info("No 'Unavaiable' sign found. Continue...")
+
+                try:
+                    # <button type="button" class="sc-fzoiQi hEJeAX bigtix-button bigtix-button--primary bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next"><div>Checkout</div></button>
+                    checkout_button = await page.find_element_by_text("Checkout")
+                    checkout_button.click()
+                except Exception as e:
+                    logger.info("Unable to check out, continue to the next section")
+                    continue
+                print("Ticket secured. Please proceed to check out.")
+                return  # Exit the function if seats are successfully confirmed
+            except TimeoutError as e:
+                logger.warning(f"TimeoutError while trying to click section {section}: {e}")
             except Exception as e:
-                logger.info("Clickable")
-            await confirm_seats_button.click()
-            logger.info("Click!!!!!!!!!!!!!!")
-            return  # Exit the function if seats are successfully confirmed
-        except TimeoutError as e:
-            logger.warning(f"TimeoutError while trying to click section {section}: {e}")
-            continue
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
-            continue  # Move to the next section if there's a general error
-
-    logger.error("Unable to select any section from the provided section_data.")
-
-        
+                logger.error(f"An error occurred while selecting section {section}: {e}")
+        logger.error("Unable to select any section from the provided section_data.")
+        time.sleep(10)
+        page.reload(False)

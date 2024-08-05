@@ -17,10 +17,12 @@ section_data = config["sections"]
 async def main():
     browser = await uc.start()
     page = await browser.get(url_to_visit)
-    await page.set_window_size(left=0, top=0, width=600, height=1024)
+    # Set the window size to avoid the scroll accept
+    await page.set_window_size(left=0, top=0, width=600, height=900)
 
     await visit_target_website(page)
     await check_captcha(page)
+    time.sleep(1)
     await check_queue(page)
     await scroll_and_accept(page)
     await fill_in_ticket_number(page, 2)
