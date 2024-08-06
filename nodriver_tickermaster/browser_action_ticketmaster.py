@@ -1,4 +1,7 @@
-import nodriver as uc
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import os
 import ddddocr
 import requests
@@ -29,17 +32,41 @@ async def login(page, username, password):
         # <input id="signInFormPassword" name="password" type="password" class="form-control inputField-customizable" placeholder="Password" required="">
         # <input name="signInSubmitButton" type="Submit" value="Sign in" class="btn btn-primary submitButton-customizable" aria-label="submit">
         
+        # <input id="signInFormUsername" name="username" type="text" class="form-control inputField-customizable" placeholder="name@host.com" autocapitalize="none" required="" value="">
         ################    BUG TO FIX  ##########################
-        username_input = await page.select("input[id=signInFormUsername]")
-        print(username_input)
-        password_input = await page.select("input[id=signInFormPassword]")
-        print(password_input)
-        sign_in_button = await page.select("input[type=Submit]")
-        
-        await username_input.send_keys(username)
-        await password_input.send_keys(password)
-        time.sleep(10)
-        await sign_in_button.click()
+        try:
+            account_field = await page.query_selector('input[type=text]')
+            if account_field:
+                print("Account input found: " + account_field)
+                await account_field.send_keys("tian.shixing2001@gmail.com")
+                time.sleep(1)
+            else:
+                print("account input not found")
+        except Exception as e:
+            print("send_keys fail for username.")
+            print(e)
+            
+        try:
+            password_selector = 'input[type~=password]'
+            password_field= await page.query_selector(password_selector)
+            if password_field:
+                print("Password input found: " + password_field)
+                await password_field.send_keys(password)
+                time.sleep(1)
+            else:
+                print("password input not found.")
+        except Exception as e:
+            print("send_keys failed for password. ")
+            print(e)
+
+        try:
+            submit = await page.query_selector_all("input[type*=Submit]")
+            if submit:
+                await submit[0].click()
+            else:
+                logger.error("Unable to find submit button")
+        except Exception as e:
+            logger.error("Failed to click the button: " + e)
     except TimeoutError as e:
         print(e)
 
@@ -48,23 +75,54 @@ async def login(page, username, password):
 
 
 async def click_buy_tickets(page,url_seg):
-
-    # <a class="btn btn-primary btn-block btn-findTickets nav-ticket" href="/activity/game/24sg_dprsingapore" rel="nofollow">BUY TICKETS</a>
+    print("start 'Click and buy'")
+    # <a class="btn btn-primary btn-block btn-findTickets nav-ticket" href="/activity/game/24sg_zerobaseone" rel="nofollow">BUY TICKETS</a>
     try:
-        buy_tickets_button = await page.select(f"a[href*={url_seg}]")
-        await buy_tickets_button.click()
+        ticket_button_selector = 'a.btn.btn-primary.btn-block.btn-findTickets.nav-ticket'
+        buy_tickets_button = await page.query_selector(ticket_button_selector)
+        if buy_tickets_button:
+            print(buy_tickets_button)
+            await buy_tickets_button.click()
+        else:
+            logger.error("Unable to find  'But tickets' button")
     except Exception as e:
         logger.error(e)
 
 # <a class="btn btn-primary text-bold m-0" href="https://ticketmaster.sg/ticket/area/24sg_straykids/1778" rel="nofollow" data-href="https://ticketmaster.sg/ticket/area/24sg_straykids/1778">Find tickets</a>
 async def find_ticket(page, url_seg):
+    print("start 'find ticket'")
+    time.sleep(1)
     try:
-        find_ticket_button = await page.select(f"a[href*={url_seg}]")
-        print("Found: " + find_ticket_button)
-        await find_ticket_button.click()
+        find_button_selector = "a.btn.btn-primary.text-bold.m-0"
+        find_ticket_button = await page.select(find_button_selector)
+        if find_ticket_button:
+            print(find_ticket_button)
+            await find_ticket_button.click()
+        else:
+            logger.error("Unable to find 'Find Tickets' button")
     except TimeoutError as e:
         logger.error(e)
         page.reload()
+
+async def input_promo_code(page, promo_code):
+    # <input type="text" id="checkCode" class="promoCodeInput" name="checkCode" onkeypress="if (event.keyCode == 13) {$(&quot;.check-discount&quot;).trigger(&quot;click&quot;);}">
+    try:
+        input_field = await page.query_selector("input#checkCode.promoCodeInput")
+        if input_field:
+            await input_field.click()
+            await input_field.send_keys(promo_code)
+            print("Promo code sent!")
+        else:
+            logger.error("Unable to locate input field")
+        selector = "button.btn.btn-primary.btn-sm.check-discount"
+        submit_button = await page.query_selector(selector)
+        if submit_button:
+            await submit_button.click()
+            time.sleep(1)
+        else:
+            logger.error("Unable to locate submit button")
+    except Exception as e:
+        logger.error(e)
 
 async def select_section(page,section):
    # <g id="field_PEND_VIP" class="empty">
@@ -88,10 +146,12 @@ async def select_section(page,section):
 	# 	</g>
 	# </g>
     try: 
-        css_selector = f"g[id*=field_PC4]"
-        section_element = await page.select(css_selector)
-        print(section_element)
-        await section_element.click()
+        section_css_selector = "#field_318"
+        section_element = await page.query_selector(section_css_selector)
+        if section_element:
+            print(section_element)
+            time.sleep(1)
+            await section_element.click()
     except Exception as e:
         logger.error(e)
         
@@ -151,4 +211,3 @@ async def check_box(page):
         await submit_button.click()
     except Exception as e:
         logger.error(e)
-        
