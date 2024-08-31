@@ -25,24 +25,32 @@ print("Last segment taken: " + last_segment)
 async def main():
     print("Ticketing starts...")
     browser = await uc.start()
-    page = await browser.get("https://ticketmaster.sg/activity/detail/24sg_zerobaseone")
+    page = await browser.get("https://ticketmaster.sg")
     page.set_window_size(0,0,600,900)
     
     # await login(page, username, password)
 
-    login = await page.select("a[href*=login]")
-    await login.click()
-    time.sleep(20)
-    await click_buy_tickets(page,last_segment)
-    await find_ticket(page, last_segment)
-    await input_promo_code(page, promo_code)
-    await select_section(page,section_data)
-    await select_ticket_number(page,2)
-    await best_available(page)
+    # login = await page.select("a[href*=login]")
+    # await login.click()
+    # time.sleep(20)
+    # await click_buy_tickets(page,last_segment)
+    # await find_ticket(page, last_segment)
+    # await input_promo_code(page, promo_code)
+    # await select_section(page,section_data)
+    # await select_ticket_number(page,2)
+    # await best_available(page)
     # await check_captcha(page)
     # await check_box(page) 
     
     time.sleep(36000)
     
+# if __name__ == '__main__':
+#     uc.loop().run_until_complete(main())
+
+async def run_multiple_instances(n):
+    tasks = [main() for _ in range(n)]
+    await asyncio.gather(*tasks)
+
 if __name__ == '__main__':
-    uc.loop().run_until_complete(main())
+    num_instances = 2
+    asyncio.run(run_multiple_instances(num_instances))

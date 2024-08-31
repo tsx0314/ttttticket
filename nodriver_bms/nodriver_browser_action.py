@@ -22,7 +22,7 @@ async def visit_target_website(page):
     has_button = False
     while not has_button:
         try: 
-            book_now_button = await page.select("button[class*=BookButton__StyledButton]",10)
+            book_now_button = await page.select("button[class*=BookButton__StyledButton]",2)
             print(book_now_button)
             has_button = True
             await book_now_button.click()
@@ -39,7 +39,7 @@ async def check_captcha(page):
     # <img class="captcha-code" aria-label="captcha image" alt="captcha image" src="data:image/jpeg;charset=utf-8;base64,/9j/4AAQSkZ">
     # <input name="CaptchaCode" class="botdetect-input" tabindex="0" id="solution" type="text" pattern="[A-Za-z0-9]*" aria-label="Enter the code from the picture: ">
     try:
-        captcha_img = await page.select("img[class*=captcha]")
+        captcha_img = await page.select("img[class*=captcha]",2)
         logger.info(captcha_img)
         captcha_img_attributes = await captcha_img.get_js_attributes()
         img_src = captcha_img_attributes["src"]
@@ -102,7 +102,7 @@ async def check_queue(page):
 async def redirect(page):
     time.sleep(1)
     try:
-        redirect_button = await page.select("button[id*=buttonConfirmRedirect]")
+        redirect_button = await page.select("button[id*=buttonConfirmRedirect]",2)
         logger.info("Find redirect button")
         await redirect_button.click()
         logger.info("Redirect button clicked!")
@@ -113,7 +113,7 @@ async def redirect(page):
 async def scroll_and_accept(page):
     # <div class="ClickToAccept__StyledContent-sc-1bm3gjz-3 gJmPMw"><div class="sc-fzpans fcjwmW ClickToAccept__StyledHTMLParser-sc-1bm3gjz-4 dPRNgc bigtix-htmlparser"><ul><li><strong>Please ensure your email address is valid to receive the confirmation email and e-ticket(s). 请确保您的电子邮件地址有效，以便接收确认电子邮件和电子门票。</strong></li></ul><p><br></p><ul><li><strong>Any request of changing email will not be entertained. 任何更改电子邮件的请求將不予受理</strong>。</li></ul><p><br></p><ul><li>Please ensure the ticket category/section that you selected is correct. 请确保您选择的门票类别/区域是正确的。</li></ul><p><br></p><ul><li>There will be no cancellation or changes once transaction is successful. 交易成功后将无法取消或更改。</li></ul><p><br></p><ul><li>Please check on the seats assigned to you at the Booking Summary before check out. 请在付款前检查分配給您的座位。</li></ul><p><br></p></div></div>
     try: 
-        scroll_div = await page.find_element_by_text("Please check on the seats assigned to you at the Booking Summary before check out.")
+        # scroll_div = await page.find_element_by_text("Please check on the seats assigned to you at the Booking Summary before check out.")
         # await scroll_div.scroll_into_view()
         # <li>Please check on the seats assigned to you at the Booking Summary before check out. 请在付款前检查分配給您的座位。</li>
         # logger.info("Scrolled!")
@@ -149,35 +149,38 @@ async def choose_section(page, section_data):
         for section in section_data:
             try:
                 section_id = str(section)
-                css_selector = f"rect[id={section_id}]"
-                current_section = await page.select(css_selector)
-                print(current_section)
-                await current_section.mouse_click()
+                css_selector = f"#{section_id}]"
+                current_section = await page.query_selector(css_selector)
+                if current_section:    
+                    print(current_section)
+                    await current_section.click()
+                else:
+                    print("Unable to find the section.")
                 print("section is clicked.")
                 time.sleep(0.5)
                 # has redirect to check out page or not
                 try:
                     # <button disabled="" aria-disabled="true" type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-button--disabled bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next" style="pointer-events: none;"><div>Confirm Seats</div></button>
                     # <button type="button" class="sc-AxhUy ifTbUE bigtix-button bigtix-button--primary bigtix-booking-pagenav-next" id="bigtix-booking-next-page" data-test="test-bigtix-booking--pagenav-next" style=""><div>Confirm Seats</div></button>
-                    confirm_seats_button = await page.select("button[id*=booking-next-page]")
-                    print(confirm_seats_button)
-                    print("confirm seats button found...")
+                    confirm_seats_button = await page.query_selector("#bigtix-booking-next-page")
+                    if confirm_seats_button:    
+                        print(confirm_seats_button)
+                        print("confirm seats button found...")
+                         ############## BUG HERE ##################
+                        button_attributes = await confirm_seats_button.get_js_attributes()
+                        ###########################################
+                        print(button_attributes)
+                        button_style = button_attributes['style']
 
-                    ############## BUG HERE ##################
-                    button_attributes = await confirm_seats_button.get_js_attributes()
-                    ###########################################
-                    print(button_attributes)
-                    button_style = button_attributes["style"]
-
-                    print(button_style)
-                    
-                    print("Attributr style is: " + button_style)
-                    if "none" in button_style:
-                        continue
+                        print(button_style)
+                        print("Attributr style is: " + button_style)
+                        if "none" in button_style:
+                            continue
+                        else:
+                            await confirm_seats_button.click()  # Click if "none" is not in the button style
+                            print("confirm seats button clicked...")
                     else:
-                        await confirm_seats_button.click()  # Click if "none" is not in the button style
-                        print("confirm seats button clicked...")
-
+                        print("Unable to find the section.")                
                 except Exception as e:
                     logger.error("Line 182: " + e)
 
@@ -204,5 +207,5 @@ async def choose_section(page, section_data):
             except Exception as e:
                 logger.error(f"An error occurred while selecting section {section}: {e}")
         logger.error("Unable to select any section from the provided section_data.")
-        time.sleep(10)
-        page.reload(False)
+        time.sleep(1)
+        page.reload()

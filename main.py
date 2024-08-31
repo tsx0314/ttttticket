@@ -72,7 +72,7 @@ def main():
     captcha_xpath = config['xpaths']['captcha_img']
 
     lock = Lock()
-    num_browsers = 1
+    num_browsers = 2
     threads = []
 
     for i in range(num_browsers):
