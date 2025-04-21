@@ -1,88 +1,112 @@
-# main.py
+import nodriver as uc
+import asyncio
 import time
-import random
-from threading import Thread, Lock
-from logger_setup import setup_logging
-from config_loader import load_config
-from browser_actions import book_now, check_out, is_in_queue
-from captcha_solver import solve_captcha
-from proxy import proxy_chrome
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+import base64
+from io import BytesIO
+from cap_solver import captcha
 
-def run_proxy_browser(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger):
-    with lock:
-        proxy = random.choice(proxy_contents)
+isSolving = True
 
-    PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS = proxy.split(":")
-
+async def signin(page):
     try:
-        browser = proxy_chrome(PROXY_HOST, int(PROXY_PORT), PROXY_USER, PROXY_PASS)
-        browser.get(url_to_visit)
-        logger.info("Browser instance started with proxy: %s", proxy)
+        field_email = await page.query_selector("input[id=email]")
+        field_pwd= await page.query_selector("input[id=pwd]")
+        confirm_button = await page.query_selector('a[id=formSubmit]')
 
-        has_secured_ticket = False
-
-        while not has_secured_ticket:
-            try:
-                logger.info("Attempting to click 'BOOK NOW' button...")
-                book_now(browser, book_now_button_xpath, logger)
-                logger.info("'BOOK NOW' button clicked. Checking queue status...")
-                time.sleep(1)
-                solve_captcha(browser, 5, captcha_xpath, logger)
-                is_in_queue(browser,logger)
-                logger.info("Queue status passed. Attempting to click 'Accept' button...")
-                check_out(browser, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, section_data, ticket_number, 600, logger)
-                has_secured_ticket = True
-                logger.info("Ticket secured. Please finished the check out and payment")
-            
-            except TimeoutException as e:
-                logger.warning("Timeout encountered: %s. Refreshing page...", e)
-                browser.refresh()
-                time.sleep(1)
-            except NoSuchElementException as e:
-                logger.error("Element not found: %s. Refreshing page...", e)
-                browser.refresh()
-                time.sleep(1)
-            except Exception as e:
-                logger.error("Unexpected error: %s. Refreshing page...", e)
-                browser.refresh()
-                time.sleep(1)
+        if field_email and field_pwd and confirm_button:
+            await field_email.send_keys(EMAIL)
+            await field_pwd.send_keys(PASSWORD)
+            await confirm_button.click()
+        else:
+            print("Failed to locate one or more fields on the page.")
     except Exception as e:
-        logger.error("Failed to open browser instance: %s", e)
-    time.sleep(600)
+        print("Error during signin:", e)
+
+
+async def select_date(page):
+    try:
+        date = await page.find(DATE, best_match=True)
+        if date:
+            await date.click()
+        else:
+            print("Failed to locate date column.")
+        get_ticket = await page.query_selector('button[data-prodtypecode=PT0001]')
+        time.sleep(0.5)
+        if get_ticket:
+            await get_ticket.mouse_click()
+        else:
+            print("Failed to locate the GetTickets button.")
+    except Exception as e:
+        print("Error during select_date:", e)
+                    
+async def captcha_solver(page):
     
-def main():
-    logger = setup_logging()
+    try:
+        cap_img = await page.query_selector("img[id=captchaImg]")
+        if not cap_img:
+            print("Unable to get captcha image element.")
+            return
+        else:
+            print(cap_img)
+            img_attributes = await cap_img.get_js_attributes()
+            img_src = img_attributes['src']
+            print(img_src)
+            if img_src and img_src.startswith(('data:image/jpeg;', 'data:image/png;')):
+                base64_data = img_src.split(",")[1]
+                image_data = base64.b64decode(base64_data)
+                image = Image.open(BytesIO(image_data))
+                image.save("captcha.png")
+            else:
+                print("No base64 image found or unsupported format.")
+                return
 
-    config = load_config()
+            res = captcha("captcha.png")  
+            if res:
+                input_box = await page.query_selector("input[class=placeholder]")
+                if input_box:
+                    await input_box.type(res)
+                    complete_button = await page.find('Submit',best_match=True)
+                    if complete_button:
+                        await complete_button.click()
+                else:
+                    print("Captcha input box not found.")
+    except Exception as e:
+        print("Error during captcha_solver:", e)
 
-    proxy_contents = config['proxies_list']
-    url_to_visit = config['url_to_visit']
-    ticket_number = config['ticket_number']
-    print(ticket_number)
-    section_data = config['section_data']
 
-    book_now_button_xpath = config['xpaths']['book_now_button']
-    accept_button_xpath = config['xpaths']['accept_button']
-    confirm_button_xpath = config['xpaths']['confirm_button']
-    confirm_seat_button_xpath = config['xpaths']['confirm_seat_button']
-    captcha_xpath = config['xpaths']['captcha_img']
-
-    lock = Lock()
-    num_browsers = 1
-    threads = []
-
-    for i in range(num_browsers):
-        t = Thread(target=run_proxy_browser, args=(proxy_contents, url_to_visit, book_now_button_xpath, accept_button_xpath, confirm_button_xpath, confirm_seat_button_xpath, captcha_xpath, section_data, ticket_number, lock, logger))
-        t.start()
-        threads.append(t)
-        time.sleep(1)
+async def main():
+    browser = await uc.start()
+    page = await browser.get(LOGIN_LINK)
+    await asyncio.sleep(2)
     
-    for t in threads:
-        t.join()
+    await signin(page)
+    await asyncio.sleep(1)
 
-if __name__ == "__main__":
-    main()
+    ticket_page = await browser.get(TICKET_LINK)
+    await select_date(ticket_page)
+    await asyncio.sleep(5)
+
+  
+    print("Waiting for new page to open...")
+    while len(browser.tabs) < 2:
+        await asyncio.sleep(0.2)  # Small delay to avoid busy-wait
+
+    new_page = browser.tabs[1]
+    print("New page detected. Solving CAPTCHA...")
+    await asyncio.sleep(0.5)
+    await captcha_solver(new_page)
+
+    # global isSolving
+    # while(isSolving):
+    #     # <button type="button" class="reflash" id="btnReload">Re Flash</button>
+    #     await captcha_solver(page)
+    #     # if donthasthis:
+    #     #     isSolving = False
+
+    await asyncio.sleep(10000) 
+
+if __name__ == '__main__':
+    try:
+        uc.loop().run_until_complete(main())
+    except KeyboardInterrupt:
+        print("\nReceived keyboard interrupt. Exiting gracefully.")
